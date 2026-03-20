@@ -95,19 +95,19 @@ const finalData = json.slice(1).map(row => {
     const blancaRaw = String(row[9] || '').toLowerCase();
     const tipo = blancaRaw === 'si' ? 'BLANCA' : 'SI';
 
-    return {
-        id:           row[0],                          // Columna A
-        empresa:      String(row[4] || '').trim(),     // Extrae de "FSSOCIAL" (Columna E)
-        direccion:    limpiarDireccion(row[1]),        // Columna B
-        municipio:    limpiarMunicipio(row[2]),        // Columna C
-        cp:           String(row[3] || '').trim(),     // Columna D
-        ssocial:      "No disponible",                 // Este dato no está en tu Excel real
-        cif:          String(row[5] || '').trim(),     // Columna F
-        trabajadores: row[6] || 0,                      // Columna G
-        cnae:         String(row[7] || '').trim(),     // Columna H
-        sector:       String(row[8] || '').trim(),     // Columna I
-        tipo:         tipo                             // Columna J
-    };
+ return {
+    id:           row[0],                             // Columna A (Id)
+    empresa:      String(row[1] || '').trim(),        // Columna B (EMPRESA)
+    direccion:    limpiarDireccion(row[2]),           // Columna C (DIRECCIÓN)
+    municipio:    limpiarMunicipio(row[3]),           // Columna D (MUNICIPIO)
+    cp:           String(row[4] || '').trim(),        // Columna E (CP)
+    ssocial:      String(row[5] || '').trim(),        // Columna F (SSOCIAL) - ¡Ahora sí existe!
+    cif:          String(row[6] || '').trim(),        // Columna G (CIF)
+    trabajadores: row[7] || 0,                        // Columna H (TRABAJADORES)
+    cnae:         String(row[8] || '').trim(),        // Columna I (CNAE)
+    sector:       String(row[9] || '').trim(),        // Columna J (sector)
+    tipo:         String(row[10] || '').trim() === 'Si' ? 'Blanca' : 'Con elecciones' // Columna K (blanca)
+};
 }).filter(e => e !== null);
 
             const total = finalData.length;
