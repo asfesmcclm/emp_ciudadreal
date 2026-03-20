@@ -79,7 +79,7 @@
     let filtroTipo = 'TODAS';
 
     function abrirRuta(empresa, municipio, direccion, cp) {
-        const destinoFull = `${direccion}, ${cp} ${municipio}, Albacete, España`;
+        const destinoFull = `${direccion}, ${cp} ${municipio}, Ciudad Real, España`;
         const url = `https://www.google.com/maps?saddr=My+Location&daddr=${encodeURIComponent(destinoFull)}&dirflg=d`;
         window.open(url, '_blank');
     }
