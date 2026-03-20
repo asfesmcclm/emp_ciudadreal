@@ -3,12 +3,11 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Empresas Ciudad Real marzo_2026</title>
+    <title>Censo Ciudad Real 2026</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script id="tailwind-config">
         tailwind.config = {
-            darkMode: "class",
             theme: {
                 extend: {
                     colors: {
@@ -26,15 +25,8 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { background-color: #f8fafc; }
-        
-        .card-blanca { 
-            border: 2px solid #fee2e2;
-            border-left: 8px solid #ef4444; 
-        }
-        .card-si { 
-            border: 2px solid #d1fae5;
-            border-left: 8px solid #10b981; 
-        }
+        .card-blanca { border: 2px solid #fee2e2; border-left: 8px solid #ef4444; }
+        .card-si { border: 2px solid #d1fae5; border-left: 8px solid #10b981; }
     </style>
 </head>
 <body class="text-slate-900">
@@ -45,7 +37,7 @@
             <span class="material-symbols-outlined text-slate-700 font-bold">analytics</span>
             <h1 class="text-lg font-extrabold tracking-tight text-slate-800">Censo Ciudad Real 2026</h1>
         </div>
-        <div class="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded">V1.4</div>
+        <div class="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded">V1.5</div>
     </div>
 
     <div class="px-5 pb-4 space-y-3">
@@ -57,7 +49,7 @@
         <div class="flex gap-2 overflow-x-auto no-scrollbar" id="filtros">
             <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-800 text-white text-[11px] font-bold transition-all" data-tipo="TODAS">Todas</button>
             <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[11px] font-bold transition-all" data-tipo="SI">Con Elecciones</button>
-            <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[11px] font-bold transition-all" data-tipo="Blanca">Blancas</button>
+            <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[11px] font-bold transition-all" data-tipo="BLANCA">Blancas</button>
         </div>
     </div>
 
@@ -78,16 +70,24 @@
     
     let filtroTipo = 'TODAS';
 
+    // Función crucial para manejar "Con elecciones", "Blanca", etc.
+    function normalizarTipo(texto) {
+        if (!texto) return "BLANCA";
+        const t = texto.toLowerCase().trim();
+        if (t.includes("elecciones") || t === "si") return "SI";
+        return "BLANCA";
+    }
+
     function abrirRuta(empresa, municipio, direccion, cp) {
         const destinoFull = `${direccion}, ${cp} ${municipio}, Ciudad Real, España`;
-        const url = `https://www.google.com/maps?saddr=My+Location&daddr=${encodeURIComponent(destinoFull)}&dirflg=d`;
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinoFull)}&travelmode=driving`;
         window.open(url, '_blank');
     }
 
     function actualizarStats(data) {
         const total = data.length;
-        const si = data.filter(e => e.tipo === 'SI').length;
-        const blanca = data.filter(e => e.tipo === 'Blanca').length;
+        const si = data.filter(e => normalizarTipo(e.tipo) === 'SI').length;
+        const blanca = data.filter(e => normalizarTipo(e.tipo) === 'BLANCA').length;
         
         statsBar.innerHTML = `
             <div class="flex items-center gap-4">
@@ -112,9 +112,11 @@
             const matchQuery = e.empresa.toLowerCase().includes(q) || 
                                e.municipio.toLowerCase().includes(q) || 
                                (e.sector && e.sector.toLowerCase().includes(q)) ||
-                               (e.cnae && e.cnae.toLowerCase().includes(q)) ||
                                (e.cif && e.cif.toLowerCase().includes(q));
-            const matchTipo = filtroTipo === 'TODAS' ? true : e.tipo === filtroTipo;
+            
+            const tipoEmpresa = normalizarTipo(e.tipo);
+            const matchTipo = filtroTipo === 'TODAS' ? true : tipoEmpresa === filtroTipo;
+            
             return matchQuery && matchTipo;
         });
 
@@ -125,14 +127,18 @@
             return;
         }
 
-        lista.innerHTML = filtrados.slice(0, 100).map(e => `
-            <div class="bg-white rounded-xl p-4 shadow-sm ${e.tipo === 'SI' ? 'card-si' : 'card-blanca'}">
+        lista.innerHTML = filtrados.slice(0, 100).map(e => {
+            const tipoE = normalizarTipo(e.tipo);
+            const esSi = tipoE === 'SI';
+
+            return `
+            <div class="bg-white rounded-xl p-4 shadow-sm ${esSi ? 'card-si' : 'card-blanca'}">
                 <div class="flex justify-between items-start mb-3">
                     <h3 class="font-extrabold text-sm text-slate-800 leading-tight uppercase max-w-[70%]">${e.empresa}</h3>
                     <div class="flex flex-col items-end gap-1">
                         <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-400 border border-slate-100">${e.id}</span>
-                        <span class="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${e.tipo === 'SI' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
-                            ${e.tipo === 'SI' ? 'Con Elecciones' : 'Sin Elecciones'}
+                        <span class="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${esSi ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                            ${esSi ? 'Con Elecciones' : 'Sin Elecciones'}
                         </span>
                     </div>
                 </div>
@@ -152,27 +158,27 @@
                     </div>
                     <div class="flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
                         <span class="material-symbols-outlined text-[14px] text-slate-400 font-bold">factory</span>
-                        <span class="truncate">${e.sector || 'N/A'}</span>
+                        <span class="truncate text-[9px] leading-tight">${e.sector || 'N/A'}</span>
                     </div>
                     <div class="col-span-2 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium border-t border-slate-50 pt-2 mt-1">
                         <span class="material-symbols-outlined text-[14px] text-slate-400 font-bold">map</span>
-                        <span class="truncate italic">${e.direccion || 'Dirección no disponible'}</span>
+                        <span class="truncate italic">${e.direccion || 'N/A'}</span>
                     </div>
                 </div>
 
                 <div class="flex flex-col gap-2">
                     <button onclick="abrirRuta('${e.empresa.replace(/'/g, "\\'")}', '${e.municipio}', '${(e.direccion || "").replace(/'/g, "\\'")}', '${e.cp}')" 
                         class="w-full bg-slate-800 text-white py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm">
-                        <span class="material-symbols-outlined text-sm">directions_car</span> Calcular Ruta en Coche
+                        <span class="material-symbols-outlined text-sm">directions_car</span> Calcular Ruta
                     </button>
                     
                     <button onclick="window.open('https://www.google.com/search?q=${encodeURIComponent(e.empresa + ' ' + e.municipio)}', '_blank')" 
                         class="w-full border border-slate-200 text-slate-600 py-2.5 rounded-lg text-[10px] font-bold uppercase flex items-center justify-center gap-2 active:bg-slate-50 transition-all">
-                        <span class="material-symbols-outlined text-sm">search</span> Más información
+                        <span class="material-symbols-outlined text-sm">search</span> Más info
                     </button>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     }
 
     filtrosBtn.forEach(btn => btn.addEventListener('click', () => {
@@ -185,10 +191,7 @@
     }));
 
     buscador.addEventListener('input', (e) => render(e.target.value));
-
-    window.onload = () => {
-        setTimeout(() => render(), 100);
-    };
+    window.onload = () => setTimeout(() => render(), 100);
 </script>
 </body>
 </html>
