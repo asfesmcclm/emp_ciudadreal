@@ -57,7 +57,7 @@
         <div class="flex gap-2 overflow-x-auto no-scrollbar" id="filtros">
             <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-800 text-white text-[11px] font-bold transition-all" data-tipo="TODAS">Todas</button>
             <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[11px] font-bold transition-all" data-tipo="SI">Con Elecciones</button>
-            <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[11px] font-bold transition-all" data-tipo="BLANCA">Blancas</button>
+            <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[11px] font-bold transition-all" data-tipo="Blanca">Blancas</button>
         </div>
     </div>
 
@@ -87,7 +87,7 @@
     function actualizarStats(data) {
         const total = data.length;
         const si = data.filter(e => e.tipo === 'SI').length;
-        const blanca = data.filter(e => e.tipo === 'BLANCA').length;
+        const blanca = data.filter(e => e.tipo === 'Blanca').length;
         
         statsBar.innerHTML = `
             <div class="flex items-center gap-4">
