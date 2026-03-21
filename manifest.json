@@ -1,7 +1,7 @@
 {
-  "name": "Censo Empresas Albacete 2026",
+  "name": "Censo Empresas Ciudad Real 2026",
   "short_name": "Censo2026",
-  "description": "Consulta del censo de empresas de Albacete para las elecciones sindicales 2026",
+  "description": "Consulta del censo de empresas de Ciudad Real para las elecciones sindicales 2026",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0f2f5",
