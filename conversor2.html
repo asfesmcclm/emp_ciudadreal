@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor Excel → datos.js (Edición 2026)</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        h2 { color: #2c3e50; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .instrucciones { background: #eaf4fb; border-left: 5px solid #3498db; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9em; line-height: 1.6; }
+        input[type="file"] { padding: 10px; border: 2px dashed #ccc; border-radius: 10px; width: 100%; font-size: 1em; cursor: pointer; }
+        #json_output { background: #272822; color: #f8f8f2; padding: 15px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; max-height: 400px; }
+        .btn { padding: 10px 20px; background: #2c3e50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+        .stat { margin-right: 15px; font-weight: bold; }
+        .si { color: #27ae60; }
+        .blanca { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🛠️ Generador de datos.js</h2>
+    <div class="instrucciones">
+        1. Sube tu archivo Excel.<br>
+        2. El sistema limpiará direcciones, quitará saltos de línea y asignará el tipo.<br>
+        3. Copia el resultado y pégalo en tu archivo <b>datos.js</b>.
+    </div>
+    <input type="file" id="excel_file" accept=".xlsx, .xls">
+    <div id="stats" style="margin-top: 15px;"></div>
+    <button id="btn-copiar" class="btn" style="display:none;">📋 Copiar al portapapeles</button>
+</div>
+
+<div class="card">
+    <pre id="json_output">Esperando archivo...</pre>
+</div>
+
+<script>
+    // Función de limpieza de direcciones optimizada para Google Maps
+    function limpiarDireccion(texto) {
+        if (!texto) return '';
+        let d = String(texto).toUpperCase().trim();
+
+        // Reemplazar abreviaturas comunes al inicio
+        d = d.replace(/^CT(?=\w| )/g, 'Carretera ');
+        d = d.replace(/^AV(?=\w| )/g, 'Avenida ');
+        d = d.replace(/^CL(?=\w| )/g, 'Calle ');
+        d = d.replace(/^PZ(?=\w| )/g, 'Plaza ');
+        d = d.replace(/^PS(?=\w| )/g, 'Paseo ');
+        d = d.replace(/^PG(?=\w| )/g, 'Polígono ');
+        d = d.replace(/KM\./g, 'KM ');
+        
+        // Limpiar ceros a la izquierda en los números (ej: 00003 -> 3)
+        d = d.replace(/\b0+(\d+)/g, '$1');
+
+        // Limpieza de espacios dobles
+        d = d.replace(/\s+/g, ' ').trim();
+
+        // Formato Título: Primera letra mayúscula, resto minúscula
+        return d.charAt(0) + d.slice(1).toLowerCase();
+    }
+
+    function limpiarMunicipio(m) {
+        if (!m) return '';
+        let texto = String(m).trim();
+        if (texto.includes('(')) {
+            const partes = texto.match(/(.+)\((.+)\)/);
+            if (partes) {
+                texto = partes[2] + ' ' + partes[1];
+            }
+        }
+        return texto.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').trim();
+    }
+
+    document.getElementById('excel_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            // Mapeo ajustado a tu extracto de Excel
+            const finalData = json.slice(1).map(row => {
+                if (!row[0]) return null; 
+
+                // Lógica para determinar el tipo basado en la columna M (índice 12)
+                const valorBlanca = String(row[12] || '').trim().toLowerCase();
+                const esBlanca = (valorBlanca === 'si');
+
+                return {
+                    id:           Number(row[0]),                     // Col A
+                    empresa:      String(row[1] || '').trim(),        // Col B
+                    direccion:    limpiarDireccion(row[2]),           // Col C
+                    municipio:    limpiarMunicipio(row[3]),           // Col D
+                    cp:           String(row[4] || '').trim(),        // Col E
+                    ssocial:      String(row[6] || '').trim(),        // Col G
+                    cif:          String(row[7] || '').trim(),        // Col H
+                    trabajadores: Number(row[8] || 0),                // Col I
+                    cnae:         String(row[9] || '').trim(),        // Col J
+                    sector:       String(row[10] || '').replace(/\n/g, ' ').trim(), // Col K
+                    tipo:         esBlanca ? 'Blanca' : 'Con elecciones' // Col M
+                };
+            }).filter(e => e !== null);
+
+            // Estadísticas
+            const total = finalData.length;
+            const blanca = finalData.filter(e => e.tipo === 'Blanca').length;
+            const conElecciones = finalData.filter(e => e.tipo === 'Con elecciones').length;
+
+            document.getElementById('stats').innerHTML = `
+                <span class="stat">🔢 ${total} empresas</span>
+                <span class="stat si">✅ ${conElecciones} CON ELECCIONES</span>
+                <span class="stat blanca">⚪ ${blanca} BLANCAS</span>
+            `;
+
+            // Generación de la constante para datos.js
+            const output = 'const empresas = ' + JSON.stringify(finalData, null, 2) + ';';
+            document.getElementById('json_output').textContent = output;
+            document.getElementById('btn-copiar').style.display = 'inline-block';
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('btn-copiar').addEventListener('click', () => {
+        const texto = document.getElementById('json_output').textContent;
+        navigator.clipboard.writeText(texto).then(() => {
+            alert('¡Copiado! Ahora puedes pegarlo en tu archivo datos.js');
+        });
+    });
+</script>
+</body>
+</html>
