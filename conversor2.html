@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor Excel → datos.js (Edición 2026)</title>
+    <title>Conversor Excel → datos.js (Edición 2026) crr</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -92,21 +92,26 @@
                 // Lógica para determinar el tipo basado en la columna M (índice 12)
                 const valorBlanca = String(row[12] || '').trim().toLowerCase();
                 const esBlanca = (valorBlanca === 'si');
+const finalData = json.slice(1).map(row => {
+    if (!row[0]) return null; 
 
-                return {
-                    id:           Number(row[0]),                     // Col A
-                    empresa:      String(row[1] || '').trim(),        // Col B
-                    direccion:    limpiarDireccion(row[2]),           // Col C
-                    municipio:    limpiarMunicipio(row[3]),           // Col D
-                    cp:           String(row[4] || '').trim(),        // Col E
-                    ssocial:      String(row[6] || '').trim(),        // Col G
-                    cif:          String(row[7] || '').trim(),        // Col H
-                    trabajadores: Number(row[8] || 0),                // Col I
-                    cnae:         String(row[9] || '').trim(),        // Col J
-                    sector:       String(row[10] || '').replace(/\n/g, ' ').trim(), // Col K
-                    tipo:         esBlanca ? 'Blanca' : 'Con elecciones' // Col M
-                };
-            }).filter(e => e !== null);
+    // Mapeo corregido (Siguiendo el orden A, B, C, D, E, F, G, H, I, J, K)
+    const esBlanca = String(row[10] || '').trim().toLowerCase() === 'si';
+
+    return {
+        id:           Number(row[0]),                     // Col A (Id)
+        empresa:      String(row[1] || '').trim(),        // Col B (R. Social)
+        direccion:    limpiarDireccion(row[2]),           // Col C (Domicilio)
+        municipio:    limpiarMunicipio(row[3]),           // Col D (Localidad)
+        cp:           String(row[4] || '').trim(),        // Col E (Código Postal)
+        ssocial:      String(row[5] || '').trim(),        // Col F (Núm. S.S.) - EL QUE FALTABA
+        cif:          String(row[6] || '').trim(),        // Col G (CIF)
+        trabajadores: Number(row[7] || 0),                // Col H (Nº Trabajadores)
+        cnae:         String(row[8] || '').trim(),        // Col I (Cnae 2025)
+        sector:       String(row[9] || '').replace(/\n/g, ' ').trim(), // Col J (Descripción)
+        tipo:         esBlanca ? 'Blanca' : 'Con elecciones' // Col K (EsBlanca)
+    };
+}).filter(e => e !== null);
 
             // Estadísticas
             const total = finalData.length;
