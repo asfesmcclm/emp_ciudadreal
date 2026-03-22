@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor Excel → datos.js (Edición 2026) crr</title>
+    <title>Conversor Excel → datos.js (Versión Final)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -25,7 +25,7 @@
     <h2>🛠️ Generador de datos.js</h2>
     <div class="instrucciones">
         1. Sube tu archivo Excel.<br>
-        2. El sistema limpiará direcciones, quitará saltos de línea y asignará el tipo.<br>
+        2. Se procesarán las columnas A (Id) hasta K (EsBlanca).<br>
         3. Copia el resultado y pégalo en tu archivo <b>datos.js</b>.
     </div>
     <input type="file" id="excel_file" accept=".xlsx, .xls">
@@ -38,12 +38,11 @@
 </div>
 
 <script>
-    // Función de limpieza de direcciones optimizada para Google Maps
+    // Limpieza de direcciones para Google Maps
     function limpiarDireccion(texto) {
         if (!texto) return '';
         let d = String(texto).toUpperCase().trim();
 
-        // Reemplazar abreviaturas comunes al inicio
         d = d.replace(/^CT(?=\w| )/g, 'Carretera ');
         d = d.replace(/^AV(?=\w| )/g, 'Avenida ');
         d = d.replace(/^CL(?=\w| )/g, 'Calle ');
@@ -52,24 +51,21 @@
         d = d.replace(/^PG(?=\w| )/g, 'Polígono ');
         d = d.replace(/KM\./g, 'KM ');
         
-        // Limpiar ceros a la izquierda en los números (ej: 00003 -> 3)
+        // Eliminar ceros a la izquierda en portales/números
         d = d.replace(/\b0+(\d+)/g, '$1');
 
-        // Limpieza de espacios dobles
+        // Limpieza de espacios y formato título
         d = d.replace(/\s+/g, ' ').trim();
-
-        // Formato Título: Primera letra mayúscula, resto minúscula
         return d.charAt(0) + d.slice(1).toLowerCase();
     }
 
+    // Formateo de municipios
     function limpiarMunicipio(m) {
         if (!m) return '';
         let texto = String(m).trim();
         if (texto.includes('(')) {
             const partes = texto.match(/(.+)\((.+)\)/);
-            if (partes) {
-                texto = partes[2] + ' ' + partes[1];
-            }
+            if (partes) texto = partes[2] + ' ' + partes[1];
         }
         return texto.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').trim();
     }
@@ -85,35 +81,29 @@
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-            // Mapeo ajustado a tu extracto de Excel
+            // Mapeo corregido incluyendo row[5]
             const finalData = json.slice(1).map(row => {
                 if (!row[0]) return null; 
 
-                // Lógica para determinar el tipo basado en la columna M (índice 12)
-                const valorBlanca = String(row[12] || '').trim().toLowerCase();
-                const esBlanca = (valorBlanca === 'si');
-const finalData = json.slice(1).map(row => {
-    if (!row[0]) return null; 
+                // Columna K es índice 10
+                const esBlanca = String(row[10] || '').trim().toLowerCase() === 'si';
 
-    // Mapeo corregido (Siguiendo el orden A, B, C, D, E, F, G, H, I, J, K)
-    const esBlanca = String(row[10] || '').trim().toLowerCase() === 'si';
+                return {
+                    id:           Number(row[0]),                             // Col A
+                    empresa:      String(row[1] || '').trim(),                // Col B
+                    direccion:    limpiarDireccion(row[2]),                   // Col C
+                    municipio:    limpiarMunicipio(row[3]),                   // Col D
+                    cp:           String(row[4] || '').trim(),                // Col E
+                    ssocial:      String(row[5] || '').trim(),                // Col F (Recuperada)
+                    cif:          String(row[6] || '').trim(),                // Col G
+                    trabajadores: Number(row[7] || 0),                        // Col H
+                    cnae:         String(row[8] || '').trim(),                // Col I
+                    sector:       String(row[9] || '').replace(/\n/g, ' ').trim(), // Col J
+                    tipo:         esBlanca ? 'Blanca' : 'Con elecciones'       // Col K
+                };
+            }).filter(e => e !== null);
 
-    return {
-        id:           Number(row[0]),                     // Col A (Id)
-        empresa:      String(row[1] || '').trim(),        // Col B (R. Social)
-        direccion:    limpiarDireccion(row[2]),           // Col C (Domicilio)
-        municipio:    limpiarMunicipio(row[3]),           // Col D (Localidad)
-        cp:           String(row[4] || '').trim(),        // Col E (Código Postal)
-        ssocial:      String(row[5] || '').trim(),        // Col F (Núm. S.S.) - EL QUE FALTABA
-        cif:          String(row[6] || '').trim(),        // Col G (CIF)
-        trabajadores: Number(row[7] || 0),                // Col H (Nº Trabajadores)
-        cnae:         String(row[8] || '').trim(),        // Col I (Cnae 2025)
-        sector:       String(row[9] || '').replace(/\n/g, ' ').trim(), // Col J (Descripción)
-        tipo:         esBlanca ? 'Blanca' : 'Con elecciones' // Col K (EsBlanca)
-    };
-}).filter(e => e !== null);
-
-            // Estadísticas
+            // Conteos para el panel de control
             const total = finalData.length;
             const blanca = finalData.filter(e => e.tipo === 'Blanca').length;
             const conElecciones = finalData.filter(e => e.tipo === 'Con elecciones').length;
@@ -124,7 +114,6 @@ const finalData = json.slice(1).map(row => {
                 <span class="stat blanca">⚪ ${blanca} BLANCAS</span>
             `;
 
-            // Generación de la constante para datos.js
             const output = 'const empresas = ' + JSON.stringify(finalData, null, 2) + ';';
             document.getElementById('json_output').textContent = output;
             document.getElementById('btn-copiar').style.display = 'inline-block';
@@ -135,7 +124,7 @@ const finalData = json.slice(1).map(row => {
     document.getElementById('btn-copiar').addEventListener('click', () => {
         const texto = document.getElementById('json_output').textContent;
         navigator.clipboard.writeText(texto).then(() => {
-            alert('¡Copiado! Ahora puedes pegarlo en tu archivo datos.js');
+            alert('¡Copiado! Pégalo en tu archivo datos.js');
         });
     });
 </script>
